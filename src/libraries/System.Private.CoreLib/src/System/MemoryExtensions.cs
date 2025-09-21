@@ -20,6 +20,12 @@ namespace System
     public static partial class MemoryExtensions
     {
         /// <summary>
+        /// </summary>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe byte* AsPointer(this ReadOnlySpan<byte> span) => *(byte**) Unsafe.AsPointer(ref span);
+
+        /// <summary>
         /// Creates a new span over the portion of the target array.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

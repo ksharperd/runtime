@@ -206,6 +206,8 @@ namespace System
         public static System.Memory<T> AsMemory<T>(this T[]? array, int start) { throw null; }
         public static System.Memory<T> AsMemory<T>(this T[]? array, int start, int length) { throw null; }
         public static System.Memory<T> AsMemory<T>(this T[]? array, System.Range range) { throw null; }
+        [System.CLSCompliantAttribute(false)]
+        public static unsafe byte* AsPointer(this ReadOnlySpan<byte> span) { throw null; }
         public static System.ReadOnlySpan<char> AsSpan(this string? text) { throw null; }
         public static System.ReadOnlySpan<char> AsSpan(this string? text, int start) { throw null; }
         public static System.ReadOnlySpan<char> AsSpan(this string? text, int start, int length) { throw null; }

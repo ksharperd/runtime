@@ -65,6 +65,7 @@ namespace ILCompiler
                 if (resultDef != result)
                 {
                     MethodIL newBodyDef = GetMethodILWithInlinedSubstitutions(result);
+                    newBodyDef = GetMethodILWithInlinedSubstitutions2(newBodyDef);
 
                     // If we didn't rewrite the body, we can keep the existing result.
                     if (newBodyDef != result)
@@ -101,6 +102,66 @@ namespace ILCompiler
 
             // The instruction at this offset is reachable
             Mark = 0x80,
+        }
+
+        private static MethodIL GetMethodILWithInlinedSubstitutions2(MethodIL method)
+        {
+            int state = 0;
+            int offset = 0;
+            byte[] methodBytes = method.GetILBytes();
+            ILReader reader = new(methodBytes);
+            while (reader.HasNext)
+            {
+                ILOpcode opcode = reader.ReadILOpcode();
+                switch (state)
+                {
+                    case 0 when opcode == ILOpcode.ldsflda:
+                    {
+                        var field = method.GetObject(reader.ReadILToken(), NotFoundBehavior.ReturnNull) as EcmaField;
+                        state = field is { HasRva: true } ? 1 : 0;
+                        break;
+                    }
+                    case 1 when opcode is >= ILOpcode.ldc_i4_0 and <= ILOpcode.ldc_i4:
+                    {
+                        offset = reader.Offset - 1;
+                        reader.Skip(opcode);
+                        state = 2;
+                        break;
+                    }
+                    case 2 when opcode == ILOpcode.newobj:
+                    {
+                        var ctor = method.GetObject(reader.ReadILToken(), NotFoundBehavior.ReturnNull) as MethodForInstantiatedType;
+                        var type = ctor?.OwningType as InstantiatedType;
+                        if ((type.Namespace.ToString() == "System") && (type.Name.ToString() == "ReadOnlySpan`1") && type.Instantiation[0].IsWellKnownType(WellKnownType.Byte))
+                        {
+                            state = 3;
+                            break;
+                        }
+                        offset = 0;
+                        state = 0;
+                        break;
+                    }
+                    case 3 when opcode == ILOpcode.call:
+                    {
+                        var callee = method.GetObject(reader.ReadILToken(), NotFoundBehavior.ReturnNull) as EcmaMethod;
+                        if (callee.IsAggressiveInlining && callee.Name.ToString() == "AsPointer" && callee.OwningType is EcmaType ecmaType && ecmaType.Name.ToString() == "MemoryExtensions" && ecmaType.Name.ToString() == "System")
+                        {
+                            int nopLength = ((ILOpcode)methodBytes[offset]).GetSize() + 10;
+                            Span<byte> instBytes = methodBytes.AsSpan().Slice(offset, nopLength);
+                            instBytes.Clear();
+                        }
+                        offset = 0;
+                        state = 0;
+                        break;
+                    }
+                    default:
+                        reader.Skip(opcode);
+                        offset = 0;
+                        state = 0;
+                        break;
+                }
+            }
+            return method;
         }
 
         public MethodIL GetMethodILWithInlinedSubstitutions(MethodIL method)

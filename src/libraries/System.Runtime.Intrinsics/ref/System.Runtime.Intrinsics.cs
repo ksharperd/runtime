@@ -10974,6 +10974,15 @@ namespace System.Runtime.Intrinsics.X86
             public static System.Runtime.Intrinsics.Vector512<byte> GaloisFieldMultiply(System.Runtime.Intrinsics.Vector512<byte> left, System.Runtime.Intrinsics.Vector512<byte> right) { throw null; }
         }
     }
+
+    [System.CLSCompliantAttribute(false)]
+    public abstract partial class JitIntrinsic
+    {
+        internal JitIntrinsic() { }
+        public static bool IsSupported { get { throw null; } }
+        public static unsafe void* ReturnAddress() { throw null; }
+        public static unsafe void** AddressOfReturnAddress() => AddressOfReturnAddress();
+    }
 }
 namespace System.Runtime.Intrinsics.Wasm
 {
